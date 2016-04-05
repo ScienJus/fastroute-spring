@@ -81,10 +81,8 @@ public class FastRouteHandlerMapping extends RequestMappingHandlerMapping {
             Matcher matcher = regexRoutePatterns.get(requestMethod).matcher(lookupPath);
 
             if (matcher.matches()) {
-                int i = 1;
-                while (matcher.group(i) == null) {
-                    i++;
-                }
+                int i;
+                for (i = 1; matcher.group(i) == null; i++);
                 FastRouteRequestMappingInfo mappingInfo = regexRoutes.get(requestMethod).get(i);
                 mapping = mappingInfo.getMapping();
 
@@ -129,6 +127,7 @@ public class FastRouteHandlerMapping extends RequestMappingHandlerMapping {
             return method;
         }
         //405 or 404
+        //TODO 405
         return null;
     }
 
