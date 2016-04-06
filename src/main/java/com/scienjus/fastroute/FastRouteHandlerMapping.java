@@ -28,8 +28,6 @@ import java.util.regex.Pattern;
  */
 public class FastRouteHandlerMapping extends RequestMappingHandlerMapping {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(FastRouteHandlerMapping.class);
-
     private static final Pattern PATH_VARIABLE_PATTERN =  Pattern.compile("\\{[^/]+?\\}");
 
     private static final String PATH_VARIABLE_REPLACE =  "([^/]+)";
@@ -64,19 +62,19 @@ public class FastRouteHandlerMapping extends RequestMappingHandlerMapping {
 
     @Override
     protected HandlerMethod lookupHandlerMethod(String lookupPath, HttpServletRequest request) throws Exception {
-        //register
+        // register
         register();
-        //mapping
+        // mapping
         RequestMappingInfo mapping = null;
         Map<String, String> uriVariables = new LinkedHashMap<>();
 
         RequestMethod requestMethod = RequestMethod.valueOf(request.getMethod());
-        //static routes
+        // static routes
         Map<String, RequestMappingInfo> routeMap = staticRoutes.get(requestMethod);
         if (routeMap != null) {
             mapping = routeMap.get(lookupPath);
         }
-        //regex routes
+        // regex routes
         if (mapping == null) {
             Matcher matcher = regexRoutePatterns.get(requestMethod).matcher(lookupPath);
 
@@ -92,7 +90,9 @@ public class FastRouteHandlerMapping extends RequestMappingHandlerMapping {
                 while (++i <= matcher.groupCount() && (uriVariable = matcher.group(i)) != null) {
                     uriVariables.put(mappingInfo.getVariableNames().get(j++), uriVariable);
                 }
-                LOGGER.debug("uri variables: {}", uriVariables);
+                if (logger.isTraceEnabled()) {
+                    logger.trace("lookup path: " + lookupPath + " uri variables: " + uriVariables);
+                }
             }
 
         }
@@ -126,8 +126,8 @@ public class FastRouteHandlerMapping extends RequestMappingHandlerMapping {
             }
             return method;
         }
-        //405 or 404
-        //TODO 405
+        // 405 or 404
+        // TODO 405
         return null;
     }
 
@@ -137,6 +137,8 @@ public class FastRouteHandlerMapping extends RequestMappingHandlerMapping {
         if (!init) {
             synchronized (this) {
                 if (!init) {
+                    long start = System.currentTimeMillis();
+
                     Map<RequestMethod, Integer> indexes = new HashMap<>();
                     Map<RequestMethod, StringBuilder> patternBuilders = new HashMap<>();
                     for (RequestMappingInfo mapping : getHandlerMethods().keySet()) {
@@ -182,10 +184,18 @@ public class FastRouteHandlerMapping extends RequestMappingHandlerMapping {
                         if (patternBuilder.length() > 1) {
                             patternBuilder.setCharAt(patternBuilder.length() - 1, '$');
                         }
-                        LOGGER.debug("init Fast Route, method:{}, regex:{}", method, patternBuilder.toString());
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("init Fast Route, method: " + method + ", regex: " + patternBuilder);
+                        }
                         regexRoutePatterns.put(method, Pattern.compile(patternBuilder.toString()));
                     }
                     init = true;
+
+                    long initTime = System.currentTimeMillis() - start;
+
+                    if (logger.isInfoEnabled()) {
+                        logger.info("Fast Route init in " + initTime + " ms");
+                    }
                 }
             }
         }
